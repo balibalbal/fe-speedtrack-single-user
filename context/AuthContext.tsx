@@ -187,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     // Panggil API logout jika diperlukan
-    fetch('http://demo.speedtrack.id:4000/api/auth/logout', {
+    fetch('https://demo.speedtrack.id:4000/api/auth/logout', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
