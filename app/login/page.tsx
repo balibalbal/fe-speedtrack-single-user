@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 
@@ -18,7 +19,7 @@ export default function LoginPage() {
     try {
       const ok = await login(email, password)
       if (!ok) setError('Email atau password salah!')
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan saat login')
     } finally {
       setIsLoading(false)
@@ -32,9 +33,11 @@ export default function LoginPage() {
         {/* Header dengan Logo di Tengah */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6">
           <div className="flex justify-center items-center">
-            <img 
+            <Image 
               src="https://track.mtrack.co.id/backend/img/mtrack-logo-new.png" 
-              alt="MTRACK Logo" 
+              alt="MTRACK Logo"
+              width={120}
+              height={60}
               className="h-15 w-auto object-contain"
             />
           </div>

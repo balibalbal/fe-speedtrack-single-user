@@ -33,12 +33,18 @@ interface FilterForm {
   end_date: string
 }
 
+interface Vehicle {
+  id: string
+  no_pol: string
+}
+
+
 export default function TrackingPage() {
   const { token } = useAuth()
   const [points, setPoints] = useState<Point[]>([])
   const [track, setTrack] = useState<Track | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [vehicles, setVehicles] = useState<any[]>([]) // State untuk daftar kendaraan
+  const [, setLoading] = useState(true)
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]) // State untuk daftar kendaraan
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -55,7 +61,7 @@ export default function TrackingPage() {
   const currentPoint = useMemo(() => points[currentIndex], [points, currentIndex])
   const startPoint = points[0]
   const endPoint = points[points.length - 1]
-  const [animatedPos, setAnimatedPos] = useState<[number, number] | null>(null)
+  const [, setAnimatedPos] = useState<[number, number] | null>(null)
 
   const [isLeftOpen, setIsLeftOpen] = useState(true)
   const [isRightOpen, setIsRightOpen] = useState(true)

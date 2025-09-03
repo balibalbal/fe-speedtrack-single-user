@@ -1,18 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState, useRef } from "react"
+import { useEffect, useMemo, useState, useRef, useCallback } from "react"
 import { useAuth } from "@/context/AuthContext"
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import Link from 'next/link';
-
-// Fix for default markers in Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+import Image from 'next/image'
 
 interface Vehicle {
   id: string
@@ -39,7 +32,7 @@ interface Vehicle {
   weight_persen: number | null
   angle: number | null
   odometer: number | null
-  total_odometer: number | null
+  total_odometer: null
   fuel: number | null
   deleted_at: string | null
   created_at: string | null
@@ -52,7 +45,7 @@ interface Vehicle {
   status_address: string | null
   vendor_gps: string | null
   distance: number | null
-  geom: any
+  geom: string | null
   group_id: number | null
   protocol: string | null
 }
@@ -89,6 +82,22 @@ export default function TrackingPage() {
   const [isRightOpen, setIsRightOpen] = useState(true)
   
   const mapRef = useRef<HTMLDivElement>(null);
+
+  // Get icon based on vehicle status
+  const getIconByStatus = useCallback((status: string | null) => {
+    switch(status) {
+      case 'bergerak':
+        return '/images/vehicles/on.png';
+      case 'mati':
+        return '/images/vehicles/off.png';
+      case 'berhenti':
+        return '/images/vehicles/engine.png'
+      case 'diam':
+        return '/images/vehicles/ack.png'
+      default:
+        return '/images/vehicles/default.png'
+    }
+  }, [])
   
   // Initialize map
   useEffect(() => {
@@ -117,94 +126,74 @@ export default function TrackingPage() {
   }, [isLeftOpen, isRightOpen, map]);
 
   // Fetch data from API
-  const fetchTracking = async () => {
-      try {
-        setLoading(true)
+  const fetchTracking = useCallback(async () => {
+    try {
+      setLoading(true)
+      
+      const res = await fetch(
+        `http://localhost:3000/traccars`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      const data = await res.json()
+      if (data.success) {
+        setVehicles(data.data)
         
-        const res = await fetch(
-          `http://localhost:3000/traccars`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
-        const data = await res.json()
-        if (data.success) {
-          setVehicles(data.data)
+        // Add markers to map
+        if (map) {
+          // Clear existing markers
+          markers.forEach(marker => map.removeLayer(marker))
           
-          // Add markers to map
-          if (map) {
-            // Clear existing markers
-            markers.forEach(marker => map.removeLayer(marker))
-            
-            const newMarkers: L.Marker[] = []
-            const bounds = L.latLngBounds([]); // Create bounds to fit all markers
-            
-            data.data.forEach((vehicle: Vehicle) => {
-              if (vehicle.latitude && vehicle.longitude) {
-                const latLng = L.latLng(vehicle.latitude, vehicle.longitude);
-                bounds.extend(latLng); // Extend bounds to include this marker
-                
-                // Custom icon based on status with rotation for course
-                const customIcon = L.divIcon({
-                  html: `
-                    <div style="transform: rotate(${vehicle.course || 0}deg); transform-origin: center;">
-                      <img src="${getIconByStatus(vehicle.status)}" width="25" height="41"/>
-                    </div>
-                  `,
-                  className: 'custom-div-icon',
-                  iconSize: [25, 41],
-                  iconAnchor: [12, 41],
-                })
-                
-                const marker = L.marker(latLng, { icon: customIcon })
-                  .addTo(map)
-                  .bindPopup(vehicle.no_pol || 'Unknown Vehicle')
-                
-                marker.on('click', () => {
-                  setSelectedVehicle(vehicle)
-                })
-                
-                newMarkers.push(marker)
-              }
-            })
-            
-            setMarkers(newMarkers)
-            
-            // Fit map to show all markers if there are any
-            // Check if bounds is valid by checking if it has any points
-            if (bounds.getNorthWest() && bounds.getSouthEast()) {
-              // Add a small padding to ensure markers are not at the very edge
-              map.fitBounds(bounds, { padding: [50, 50] });
+          const newMarkers: L.Marker[] = []
+          const bounds = L.latLngBounds([]);
+          
+          data.data.forEach((vehicle: Vehicle) => {
+            if (vehicle.latitude && vehicle.longitude) {
+              const latLng = L.latLng(vehicle.latitude, vehicle.longitude);
+              bounds.extend(latLng);
+              
+              const customIcon = L.divIcon({
+                html: `
+                  <div style="transform: rotate(${vehicle.course || 0}deg); transform-origin: center;">
+                    <img src="${getIconByStatus(vehicle.status)}" width="25" height="41"/>
+                  </div>
+                `,
+                className: 'custom-div-icon',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+              })
+              
+              const marker = L.marker(latLng, { icon: customIcon })
+                .addTo(map)
+                .bindPopup(vehicle.no_pol || 'Unknown Vehicle')
+              
+              marker.on('click', () => {
+                setSelectedVehicle(vehicle)
+              })
+              
+              newMarkers.push(marker)
             }
+          })
+          
+          setMarkers(newMarkers)
+          
+          if (bounds.getNorthWest() && bounds.getSouthEast()) {
+            map.fitBounds(bounds, { padding: [50, 50] });
           }
         }
-      } catch (err) {
-        console.error("Error fetching tracking data:", err)
-      } finally {
-        setLoading(false)
       }
+    } catch (err) {
+      console.error("Error fetching tracking data:", err)
+    } finally {
+      setLoading(false)
     }
-  
-    // Get icon based on vehicle status
-    const getIconByStatus = (status: string | null) => {
-      switch(status) {
-        case 'bergerak':
-          return '/images/vehicles/on.png';
-        case 'mati':
-          return '/images/vehicles/off.png';
-        case 'berhenti':
-          return '/images/vehicles/engine.png'
-        case 'diam':
-          return '/images/vehicles/ack.png'
-        default:
-          return '/images/vehicles/default.png'
-      }
-    }
+  }, [token, map, markers, getIconByStatus])
 
   // Fetch device data when selected vehicle changes
-  const fetchDeviceData = async (deviceId: string) => {
+  const fetchDeviceData = useCallback(async (deviceId: string) => {
     if (!deviceId) return;
     
     try {
@@ -227,22 +216,22 @@ export default function TrackingPage() {
     } finally {
       setDeviceLoading(false);
     }
-  };
+  }, [token]);
 
   // Load data on component mount
   useEffect(() => {
     fetchTracking()
-  }, [map])
+  }, [fetchTracking])
   
   // When a vehicle is selected, fetch device data if device_id exists
   useEffect(() => {
     if (selectedVehicle && selectedVehicle.device_id) {
       fetchDeviceData(selectedVehicle.device_id.toString());
-      setActiveDetailTab('info'); // Reset to info tab when vehicle changes
+      setActiveDetailTab('info');
     } else {
       setDeviceData(null);
     }
-  }, [selectedVehicle]);
+  }, [selectedVehicle, fetchDeviceData]);
   
   // Focus map on selected vehicle
   useEffect(() => {
@@ -490,11 +479,14 @@ export default function TrackingPage() {
                     <div className="flex items-start">
                       {/* Icon status */}
                       <div className="flex-shrink-0 mr-3 mt-1">
-                        <img 
+                        <Image 
                           src={getIconByStatus(vehicle.status)} 
                           alt={vehicle.status || 'unknown'} 
+                          width={24}
+                          height={24}
                           className="w-6 h-6"
-                        />
+                         />
+
                       </div>
                       
                       <div className="flex-1 min-w-0">

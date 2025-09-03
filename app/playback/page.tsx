@@ -111,7 +111,7 @@ export default function TrackingPage() {
   const { token } = useAuth()
   const [points, setPoints] = useState<Point[]>([])
   const [track, setTrack] = useState<Track | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -138,7 +138,7 @@ export default function TrackingPage() {
   const currentPoint = useMemo(() => points[currentIndex], [points, currentIndex])
   const startPoint = points[0]
   const endPoint = points[points.length - 1]
-  const [animatedPos, setAnimatedPos] = useState<[number, number] | null>(null)
+  const [, setAnimatedPos] = useState<[number, number] | null>(null)
 
   const [isLeftOpen, setIsLeftOpen] = useState(true)
   const [isRightOpen, setIsRightOpen] = useState(true)

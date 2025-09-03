@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/context/AuthContext';
 
-
-// Define types for the API response
+// Define types for the API response (existing)
 interface TrackingPoint {
   id: string;
   vehicle_id: number;
@@ -30,6 +29,65 @@ interface TrackingData {
   };
 }
 
+// New type for last position API response
+interface LastPositionData {
+  success: boolean;
+  data: Array<{
+    id: string;
+    vehicle_id: number;
+    device_id: number;
+    customer_id: number | null;
+    no_pol: string;
+    latitude: number;
+    longitude: number;
+    speed: number;
+    time: string;
+    course: number;
+    engine_status: string | null;
+    ignition_status: string;
+    status: string;
+    active: number;
+    geofence: string;
+    current_geofence_id: number;
+    geofence_name: string;
+    enter_time: string;
+    out_time: string;
+    address: string;
+    weight: number | null;
+    weight_persen: number | null;
+    angle: number | null;
+    odometer: number | null;
+    total_odometer: number | null;
+    fuel: number | null;
+    deleted_at: string | null;
+    created_at: string;
+    updated_at: string;
+    geo_point: string;
+    total_distance: number;
+    geofence_status: string | null;
+    hso_status: number;
+    source_address: string;
+    status_address: string | null;
+    vendor_gps: string;
+    distance: number;
+    geom: string | null; // Changed from any to string | null
+    group_id: number;
+    protocol: string | null;
+  }>;
+}
+
+// New type for vehicles API response
+interface Vehicle {
+  id: number;
+  no_pol: string;
+  // Add other vehicle properties if needed
+}
+
+interface VehiclesResponse {
+  success: boolean;
+  data: Vehicle[];
+}
+
 // Helper function to calculate distance between two coordinates (Haversine formula)
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
   const R = 6371; // Radius of the earth in km
@@ -49,8 +107,54 @@ export default function GPSReportPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [trackingData, setTrackingData] = useState<TrackingData | null>(null);
+  const [lastPositionData, setLastPositionData] = useState<LastPositionData | null>(null);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
+  const [lastPositionLoading, setLastPositionLoading] = useState(false);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
   const [reportType, setReportType] = useState('detail');
+
+  // Fetch vehicles data on component mount
+  const fetchVehicles = useCallback(async () => {
+    if (!token) {
+      alert('Anda harus login untuk mengakses data ini');
+      return;
+    }
+
+    setVehiclesLoading(true);
+    try {
+      const response = await fetch(
+        `http://localhost:3000/vehicles/select`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          alert('Token tidak valid atau telah kedaluwarsa. Silakan login kembali.');
+          return;
+        }
+        throw new Error('Gagal mengambil data kendaraan');
+      }
+      
+      const data: VehiclesResponse = await response.json();
+      if (data.success) {
+        setVehicles(data.data);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Terjadi kesalahan saat mengambil data kendaraan');
+    } finally {
+      setVehiclesLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [fetchVehicles]); // Added fetchVehicles to dependency array
 
   const fetchTrackingData = async () => {
     if (!selectedVehicle || !startDate || !endDate) {
@@ -92,6 +196,80 @@ export default function GPSReportPage() {
     }
   };
 
+  // New function to fetch last position data
+  const fetchLastPosition = async () => {
+    if (!token) {
+      alert('Anda harus login untuk mengakses data ini');
+      return;
+    }
+
+    setLastPositionLoading(true);
+    try {
+      const response = await fetch(
+        `http://localhost:3000/traccars`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          alert('Token tidak valid atau telah kedaluwarsa. Silakan login kembali.');
+          return;
+        }
+        throw new Error('Gagal mengambil data last position');
+      }
+      
+      const data: LastPositionData = await response.json();
+      setLastPositionData(data);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Terjadi kesalahan saat mengambil data last position');
+    } finally {
+      setLastPositionLoading(false);
+    }
+  };
+
+  // New function to download last position report
+  const downloadLastPositionReport = () => {
+    if (!lastPositionData || !lastPositionData.data) return;
+
+    const excelData = lastPositionData.data.map(point => ({
+      'No Polisi': point.no_pol,
+      'Latitude': point.latitude,
+      'Longitude': point.longitude,
+      'Speed (km/h)': point.speed,
+      'Course': point.course,
+      'Alamat': point.address,
+      'Status': point.status,
+      'Status Mesin': point.engine_status,
+      'Status Ignition': point.ignition_status,
+      'Geofence': point.geofence_name,
+      'Waktu Update': new Date(point.time).toLocaleString('id-ID'),
+      'Tanggal Update': new Date(point.time).toLocaleDateString('id-ID'),
+      'Jarak Total (km)': point.total_distance,
+      'Vendor GPS': point.vendor_gps
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    
+    const colWidths = [
+      { width: 15 }, { width: 12 }, { width: 12 },
+      { width: 15 }, { width: 10 }, { width: 40 },
+      { width: 12 }, { width: 15 }, { width: 15 },
+      { width: 20 }, { width: 15 }, { width: 20 },
+      { width: 15 }, { width: 15 }
+    ];
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Last Position');
+    XLSX.writeFile(wb, `last_position_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  // Existing report functions (detail, summary, speed, parking, distance) remain the same
   const generateDetailReport = () => {
     if (!trackingData || !trackingData.points) return;
 
@@ -368,6 +546,118 @@ export default function GPSReportPage() {
         Laporan GPS Tracker
       </h1>
       
+      {/* NEW CARD FOR LAST POSITION DOWNLOAD */}
+      <div style={{ 
+        backgroundColor: '#e8f5e9', 
+        padding: '25px', 
+        borderRadius: '8px', 
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        marginBottom: '30px'
+      }}>
+        <h2 style={{ marginTop: 0, color: '#2e7d32' }}>Download Last Position</h2>
+        <p style={{ color: '#555', marginBottom: '20px' }}>
+          Download data posisi terakhir semua kendaraan tanpa filter.
+        </p>
+        
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button 
+            onClick={fetchLastPosition}
+            disabled={lastPositionLoading}
+            style={{
+              padding: '12px 20px',
+              backgroundColor: '#4caf50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: lastPositionLoading ? 'not-allowed' : 'pointer',
+              opacity: lastPositionLoading ? 0.7 : 1,
+              minWidth: '120px'
+            }}
+          >
+            {lastPositionLoading ? 'Memuat Data...' : 'Ambil Last Position'}
+          </button>
+          
+          <button 
+            onClick={downloadLastPositionReport}
+            disabled={!lastPositionData}
+            style={{
+              padding: '12px 20px',
+              backgroundColor: lastPositionData ? '#2e7d32' : '#95a5a6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: lastPositionData ? 'pointer' : 'not-allowed',
+              minWidth: '150px'
+            }}
+          >
+            Download Last Position
+          </button>
+        </div>
+
+        {lastPositionData && lastPositionData.data && (
+          <div style={{ marginTop: '20px' }}>
+            <h3 style={{ color: '#2e7d32' }}>Pratinjau Data Last Position</h3>
+            <div style={{ 
+              backgroundColor: 'white', 
+              padding: '15px', 
+              borderRadius: '8px', 
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              overflowX: 'auto'
+            }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f8e9' }}>
+                    <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'left' }}>No Polisi</th>
+                    <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'left' }}>Status</th>
+                    <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'left' }}>Kecepatan</th>
+                    <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'left' }}>Lokasi</th>
+                    <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'left' }}>Update Terakhir</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lastPositionData.data.slice(0, 5).map((point, index) => (
+                    <tr key={index}>
+                      <td style={{ padding: '10px', border: '1px solid #ddd' }}>
+                        {point.no_pol}
+                      </td>
+                      <td style={{ padding: '10px', border: '1px solid #ddd' }}>
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          backgroundColor: 
+                            point.status === 'bergerak' ? '#2ecc71' : 
+                            point.status === 'berhenti' ? '#f39c12' : '#e74c3c',
+                          color: 'white'
+                        }}>
+                          {point.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px', border: '1px solid #ddd' }}>
+                        {point.speed} km/h
+                      </td>
+                      <td style={{ padding: '10px', border: '1px solid #ddd' }}>
+                        {point.address}
+                      </td>
+                      <td style={{ padding: '10px', border: '1px solid #ddd' }}>
+                        {new Date(point.time).toLocaleString('id-ID')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {lastPositionData.data.length > 5 && (
+                <p style={{ textAlign: 'center', padding: '10px', color: '#7f8c8d' }}>
+                  Menampilkan 5 dari {lastPositionData.data.length} kendaraan
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* EXISTING FILTER CARD FOR HISTORICAL DATA */}
       <div style={{ 
         backgroundColor: '#f8f9fa', 
         padding: '25px', 
@@ -375,7 +665,7 @@ export default function GPSReportPage() {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         marginBottom: '30px'
       }}>
-        <h2 style={{ marginTop: 0, color: '#34495e' }}>Filter Laporan</h2>
+        <h2 style={{ marginTop: 0, color: '#34495e' }}>Filter Laporan Historis</h2>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
           <div>
@@ -386,11 +676,16 @@ export default function GPSReportPage() {
               value={selectedVehicle} 
               onChange={(e) => setSelectedVehicle(e.target.value)}
               style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
+              disabled={vehiclesLoading}
             >
               <option value="">-- Pilih Kendaraan --</option>
-              <option value="39">B 9236 J (ID: 39)</option>
-              {/* Tambahkan kendaraan lain sesuai kebutuhan */}
+              {vehicles.map((vehicle) => (
+                <option key={vehicle.id} value={vehicle.id}>
+                  {vehicle.no_pol} (ID: {vehicle.id})
+                </option>
+              ))}
             </select>
+            {vehiclesLoading && <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>Memuat data kendaraan...</p>}
           </div>
           
           <div>
@@ -440,19 +735,19 @@ export default function GPSReportPage() {
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button 
             onClick={fetchTrackingData}
-            disabled={loading}
+            disabled={loading || vehiclesLoading}
             style={{
               padding: '12px 20px',
               backgroundColor: '#3498db',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
+              cursor: (loading || vehiclesLoading) ? 'not-allowed' : 'pointer',
+              opacity: (loading || vehiclesLoading) ? 0.7 : 1,
               minWidth: '120px'
             }}
           >
-            {loading ? 'Memuat Data...' : 'Ambil Data'}
+            {loading ? 'Memuat Data...' : 'Ambil Data Historis'}
           </button>
           
           <button 
@@ -473,6 +768,7 @@ export default function GPSReportPage() {
         </div>
       </div>
       
+      {/* Existing tracking data preview and statistics */}
       {trackingData && trackingData.points && (
         <div>
           <h2 style={{ color: '#34495e' }}>Pratinjau Data</h2>

@@ -1,7 +1,7 @@
 // components/PermissionManager.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/context/AuthContext'
 
 interface Permission {
@@ -160,23 +160,10 @@ export default function PermissionManager({ userId }: { userId: string }) {
     }
   }
 
-  useEffect(() => {
-    if (hasPermission('manage_permissions')) {
-      fetchAllPermissions()
-      fetchUserPermissions()
-    }
-  }, [userId, hasPermission])
-
-  useEffect(() => {
-    if (mode === 'individual') {
-      setSelectedPermissions(userPermissions)
-    }
-  }, [userPermissions, mode])
-
-  const fetchAllPermissions = async () => {
+  const fetchAllPermissions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:3000/permissions', {
+      const response = await fetch('http://localhost:3000/api/permissions', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -189,9 +176,9 @@ export default function PermissionManager({ userId }: { userId: string }) {
       console.error('Error fetching permissions:', error)
       toast.error('Gagal memuat data permissions')
     }
-  }
+  }, [])
 
-  const fetchUserPermissions = async () => {
+  const fetchUserPermissions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token')
       const response = await fetch(`http://localhost:3000/permissions/user/${userId}`, {
@@ -210,7 +197,20 @@ export default function PermissionManager({ userId }: { userId: string }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId])
+
+  useEffect(() => {
+    if (hasPermission('manage_permissions')) {
+      fetchAllPermissions()
+      fetchUserPermissions()
+    }
+  }, [userId, hasPermission, fetchAllPermissions, fetchUserPermissions])
+
+  useEffect(() => {
+    if (mode === 'individual') {
+      setSelectedPermissions(userPermissions)
+    }
+  }, [userPermissions, mode])
 
   const togglePermissionIndividual = async (permissionId: string, currentlyHasPermission: boolean) => {
     try {
@@ -305,7 +305,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
         } else {
           throw new Error(data.message)
         }
-      } catch (bulkError) {
+      } catch {
         // Fallback ke individual operations
         let successCount = 0
         let errorCount = 0
@@ -323,7 +323,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
               body: JSON.stringify({ userId, permissionId })
             })
             successCount++
-          } catch (error) {
+          } catch {
             errorCount++
           }
         }
@@ -341,7 +341,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
               body: JSON.stringify({ userId, permissionId })
             })
             successCount++
-          } catch (error) {
+          } catch {
             errorCount++
           }
         }
@@ -355,8 +355,8 @@ export default function PermissionManager({ userId }: { userId: string }) {
         setUserPermissions(selectedPermissions)
         setMode('individual')
       }
-    } catch (error) {
-      console.error('Error saving permissions:', error)
+    } catch {
+      console.error('Error saving permissions:')
       toast.error('Terjadi kesalahan saat menyimpan permissions')
     } finally {
       setSaving(false)

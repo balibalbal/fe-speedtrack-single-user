@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import Image from "next/image"
+
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -74,11 +76,13 @@ export default function Navbar() {
   href="/" 
   className="flex-shrink-0 flex items-center gap-2 text-xl text-blue-600"
 >
-  <img
-    src="https://track.mtrack.co.id/backend/img/mtrack-logo-new.png"
-    alt="Logo"
-    className="h-20 w-30 object-contain"
-  />
+  <Image
+  src="https://track.mtrack.co.id/backend/img/mtrack-logo-new.png"
+  alt="Logo"
+  width={120}
+  height={80}
+  className="h-20 w-auto object-contain"
+/>
 </Link>
 
             <div className="hidden md:flex md:ml-10 md:space-x-6">
@@ -186,11 +190,12 @@ export default function Navbar() {
             {/* Profile Dropdown */}
             <div className="relative" ref={profileRef}>
               <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                onClick={toggleProfileMenu}
                 className="flex items-center text-gray-600 hover:text-blue-600"
               >
                 <UserCircle className="h-8 w-8" />
               </button>
+
 
               {isProfileOpen && (
   <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg ring-1 ring-black/5 animate-scale-fade">

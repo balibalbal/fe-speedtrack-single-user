@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -33,7 +33,6 @@ interface TrackingData {
 }
 
 // Colors for charts
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 const STATUS_COLORS = {
   bergerak: '#2ecc71',
   berhenti: '#f39c12',
@@ -60,14 +59,7 @@ export default function GPSChartsPage() {
     setStartDate(sevenDaysAgo.toISOString().split('T')[0]);
   }, []);
 
-  // Auto-fetch data when dates change
-  useEffect(() => {
-    if (startDate && endDate) {
-      fetchTrackingData();
-    }
-  }, [startDate, endDate, timeRange]);
-
-  const fetchTrackingData = async () => {
+  const fetchTrackingData = useCallback(async () => {
     if (!selectedVehicle || !startDate || !endDate) {
       return;
     }
@@ -104,7 +96,14 @@ export default function GPSChartsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedVehicle, startDate, endDate, token]);
+
+  // Auto-fetch data when dates change
+  useEffect(() => {
+    if (startDate && endDate) {
+      fetchTrackingData();
+    }
+  }, [startDate, endDate, timeRange, fetchTrackingData]);
 
   // Process data for charts
   const getStatusData = () => {
@@ -117,7 +116,10 @@ export default function GPSChartsPage() {
     };
 
     trackingData.points.forEach(point => {
-      statusCount[point.status as keyof typeof statusCount]++;
+      const statusKey = point.status as keyof typeof statusCount;
+      if (statusCount[statusKey] !== undefined) {
+        statusCount[statusKey]++;
+      }
     });
 
     return [
@@ -287,9 +289,8 @@ export default function GPSChartsPage() {
               fill="#8884d8"
               dataKey="value"
               label={({ name, value, percent }) => 
-  `${name}: ${value} (${((percent || 0) * 100).toFixed(0)}%)`
-}
-
+                `${name}: ${value} (${((percent || 0) * 100).toFixed(0)}%)`
+              }
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />

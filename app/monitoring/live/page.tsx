@@ -1,22 +1,31 @@
 "use client"
 
-import { useEffect, useMemo, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/Button"
 import { useSearchParams } from 'next/navigation';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { renderToStaticMarkup } from 'react-dom/server';
+import Image from 'next/image';
+
+interface TrackingResponse {
+  success: boolean
+  points: Point[]
+  track: { coordinates: number[][] }
+}
 
 // Ikon kendaraan dengan arah (custom SVG)
 const createVehicleIcon = (course: number, status: string | null) => {
   return L.divIcon({
     html: renderToStaticMarkup(
       <div style={{ transform: `rotate(${course}deg)`, transition: 'transform 0.5s ease' }}>
-        <img 
+        <Image 
           src={getIconByStatus(status)} 
           alt={status || 'unknown'} 
-          className="w-12 h-12"
+          width={48}
+          height={48}
+          style={{ width: '48px', height: '48px' }}
         />
       </div>
     ),
@@ -51,7 +60,6 @@ const defaultIcon = L.divIcon({
   iconSize: [8, 8],
   iconAnchor: [4, 4]
 });
-
 
 interface Point {
   id: string
@@ -99,7 +107,7 @@ export default function LivePage() {
   const { token } = useAuth()
   const [loading, setLoading] = useState(true)
   const [points, setPoints] = useState<Point[]>([])
-  const [trackLine, setTrackLine] = useState<number[][]>([])
+  const [, setTrackLine] = useState<number[][]>([])
   const [lastPoint, setLastPoint] = useState<Point | null>(null)
   const [totalDistance, setTotalDistance] = useState<number>(0)
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString())
@@ -107,7 +115,7 @@ export default function LivePage() {
   const markersRef = useRef<L.Marker[]>([])
   const polylineRef = useRef<L.Polyline | null>(null)
   const vehicleMarkerRef = useRef<L.Marker | null>(null)
-  const lastDataRef = useRef<any>(null) // Untuk menyimpan data terakhir
+  const lastDataRef = useRef<TrackingResponse | null>(null)
 
   const searchParams = useSearchParams();
   const vehicle_id = searchParams.get('vehicle_id');
@@ -145,60 +153,59 @@ export default function LivePage() {
   }, [isLeftOpen, isCenterOpen]);
 
   // Fungsi untuk menambahkan/memperbarui marker dan polyline
-  const updateMap = (points: Point[], trackLine: number[][]) => {
-  if (!mapRef.current) return;
-  
-  const map = mapRef.current;
-  
-  // Hapus marker lama
-  markersRef.current.forEach(marker => marker.remove());
-  markersRef.current = [];
-  
-  // Hapus polyline lama
-  if (polylineRef.current) {
-    polylineRef.current.remove();
-  }
-  
-  // Hapus vehicle marker lama
-  if (vehicleMarkerRef.current) {
-    vehicleMarkerRef.current.remove();
-  }
-  
-  // Tambahkan marker untuk setiap titik (kecuali yang terakhir)
-  if (points.length > 1) {
-    for (let i = 0; i < points.length - 1; i++) {
-      const point = points[i];
-      const marker = L.marker([point.latitude, point.longitude], { icon: defaultIcon })
-        .addTo(map);
-      markersRef.current.push(marker);
-    }
-  }
-  
-  // Tambahkan polyline
-  if (trackLine.length > 0) {
-    polylineRef.current = L.polyline(trackLine.map(coord => [coord[1], coord[0]] as [number, number]), {
-      color: 'blue',
-      weight: 4,
-      opacity: 0.7,
-      smoothFactor: 1
-    }).addTo(map);
-  }
-  
-  // Tambahkan vehicle marker di titik terakhir
-  if (points.length > 0) {
-    const lastPoint = points[points.length - 1];
-    // Perbaikan di sini: tambahkan parameter status
-    const vehicleIcon = createVehicleIcon(parseInt(lastPoint.course.toString()), lastPoint.status);
-    vehicleMarkerRef.current = L.marker([lastPoint.latitude, lastPoint.longitude], { icon: vehicleIcon })
-      .addTo(map);
+  const updateMap = useCallback((points: Point[], trackLine: number[][]) => {
+    if (!mapRef.current) return;
     
-    // Fokus ke titik terakhir
-    map.setView([lastPoint.latitude, lastPoint.longitude], 15);
-  }
-};
+    const map = mapRef.current;
+    
+    // Hapus marker lama
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+    
+    // Hapus polyline lama
+    if (polylineRef.current) {
+      polylineRef.current.remove();
+    }
+    
+    // Hapus vehicle marker lama
+    if (vehicleMarkerRef.current) {
+      vehicleMarkerRef.current.remove();
+    }
+    
+    // Tambahkan marker untuk setiap titik (kecuali yang terakhir)
+    if (points.length > 1) {
+      for (let i = 0; i < points.length - 1; i++) {
+        const point = points[i];
+        const marker = L.marker([point.latitude, point.longitude], { icon: defaultIcon })
+          .addTo(map);
+        markersRef.current.push(marker);
+      }
+    }
+    
+    // Tambahkan polyline
+    if (trackLine.length > 0) {
+      polylineRef.current = L.polyline(trackLine.map(coord => [coord[1], coord[0]] as [number, number]), {
+        color: 'blue',
+        weight: 4,
+        opacity: 0.7,
+        smoothFactor: 1
+      }).addTo(map);
+    }
+    
+    // Tambahkan vehicle marker di titik terakhir
+    if (points.length > 0) {
+      const lastPoint = points[points.length - 1];
+      const vehicleIcon = createVehicleIcon(parseInt(lastPoint.course.toString()), lastPoint.status);
+      vehicleMarkerRef.current = L.marker([lastPoint.latitude, lastPoint.longitude], { icon: vehicleIcon })
+        .addTo(map);
+      
+      // Fokus ke titik terakhir
+      map.setView([lastPoint.latitude, lastPoint.longitude], 15);
+    }
+  }, []);
 
   // Fungsi untuk fetch data tracking dengan tanggal hari ini
-  const fetchTracking = async (isAutoUpdate: boolean = false) => {
+  const fetchTracking = useCallback(async (isAutoUpdate: boolean = false) => {
     try {
       if (!isAutoUpdate) {
         setLoading(true);
@@ -222,7 +229,6 @@ export default function LivePage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-          // Tidak menggunakan cache untuk mendapatkan data terbaru
           cache: 'no-store'
         }
       )
@@ -278,7 +284,7 @@ export default function LivePage() {
         setLoading(false);
       }
     }
-  }
+  }, [token, vehicle_id, updateMap]);
 
   // Fetch data otomatis saat komponen dimount
   useEffect(() => {
@@ -290,7 +296,7 @@ export default function LivePage() {
       
       return () => clearInterval(interval);
     }
-  }, [token]);
+  }, [token, fetchTracking]);
 
   // Format waktu
   const formatTime = (timeString: string) => {
@@ -434,7 +440,7 @@ export default function LivePage() {
                 </div>
                 
                 <div className="space-y-3">
-                  {points.slice().reverse().map((point, index) => (
+                  {points.slice().reverse().map((point) => (
                     <div key={point.id} className="p-3 border rounded-lg hover:bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div>

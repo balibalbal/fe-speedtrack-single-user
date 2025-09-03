@@ -15,13 +15,31 @@ interface Device {
   joinDate: string
 }
 
-interface PaginationInfo {
+interface DeviceApiResponse {
+  id: number
+  no_pol: string
+  imei: string
+  sim_number: string
+  type: string
+  status: number
+  created_at: string
+}
+
+interface PaginationData {
   currentPage: number
   totalPages: number
   totalItems: number
   itemsPerPage: number
   hasNext: boolean
   hasPrev: boolean
+}
+
+interface ApiResponse {
+  success: boolean
+  data: {
+    devices: DeviceApiResponse[]
+    pagination: PaginationData
+  }
 }
 
 export default function DevicePage() {
@@ -60,10 +78,10 @@ export default function DevicePage() {
           },
         })
         
-        const data = await res.json()
+        const data: ApiResponse = await res.json()
         
         if (data.success) {
-          const mapped: Device[] = data.data.devices.map((u: any) => ({
+          const mapped: Device[] = data.data.devices.map((u: DeviceApiResponse) => ({
             id: Number(u.id),
             no_pol: u.no_pol || 'N/A',
             imei: u.imei,
@@ -556,7 +574,9 @@ export default function DevicePage() {
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md border-4 border-blue-200 shadow-2xl shadow-blue-200/50">
             <h3 className="text-xl font-semibold mb-4">Confirm Deletion</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to delete user <span className="font-medium">"{selectedDevice.no_pol}"</span>? This action cannot be undone.</p>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete user <span className="font-medium">&quot;{selectedDevice.no_pol}&quot;</span>? This action cannot be undone.
+            </p>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setIsDeleteModalOpen(false)}

@@ -14,6 +14,16 @@ interface User {
   joinDate: string
 }
 
+interface ApiUser {
+  id: string | number
+  name: string
+  email: string
+  role?: string
+  status: string
+  created_at?: string
+}
+
+
 export default function UsersPage() {
   const { token } = useAuth() // ambil token dari context
   const [users, setUsers] = useState<User[]>([])
@@ -31,17 +41,16 @@ export default function UsersPage() {
       try {
         const res = await fetch('http://localhost:3000/users', {
           headers: {
-            Authorization: `Bearer ${token}`, // pakai token hasil login
+            Authorization: `Bearer ${token}`,
           },
         })
         const data = await res.json()
         if (data.success) {
-          // mapping data API → struktur User yang kamu pakai
-          const mapped: User[] = data.data.map((u: any) => ({
+          const mapped: User[] = data.data.map((u: ApiUser) => ({
             id: Number(u.id),
             name: u.name,
             email: u.email,
-            role: u.role ?? 'User', // fallback kalau tidak ada field role
+            role: u.role ?? 'User', 
             status: u.status === '1' ? 'active' : 'inactive',
             joinDate: u.created_at ? new Date(u.created_at).toISOString().split('T')[0] : '',
           }))
@@ -155,7 +164,7 @@ const handleDeleteUser = () => {
                       {user.status}
                     </span>
                   </td>
-                  <td className="p-3 text-gray-600">{user.joinDate}</td>
+                  <td className="p-3 text-gray-600">&quot;{user.joinDate}&quot;</td>
                   <td className="p-3">
                     <div className="flex items-center gap-2">
                       <button 
@@ -409,7 +418,7 @@ const handleDeleteUser = () => {
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md border-4 border-blue-200 shadow-2xl shadow-blue-200/50">
             <h3 className="text-xl font-semibold mb-4">Confirm Deletion</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to delete user <span className="font-medium">"{selectedUser.name}"</span>? This action cannot be undone.</p>
+            <p className="text-gray-600 mb-6">Are you sure you want to delete user <span className="font-medium">&quot;{selectedUser.name}&quot;</span>? This action cannot be undone.</p>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setIsDeleteModalOpen(false)}

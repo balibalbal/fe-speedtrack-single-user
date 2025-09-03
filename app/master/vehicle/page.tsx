@@ -15,13 +15,31 @@ interface Vehicle {
   joinDate: string
 }
 
-interface PaginationInfo {
+interface VehicleApiResponse {
+  id: number
+  no_pol: string
+  group_name: string
+  sim_number: string
+  type: number
+  status: number
+  created_at: string
+}
+
+interface PaginationData {
   currentPage: number
   totalPages: number
   totalItems: number
   itemsPerPage: number
   hasNext: boolean
   hasPrev: boolean
+}
+
+interface ApiResponse {
+  success: boolean
+  data: {
+    vehicles: VehicleApiResponse[]
+    pagination: PaginationData
+  }
 }
 
 export default function VehiclePage() {
@@ -60,10 +78,10 @@ export default function VehiclePage() {
           },
         })
         
-        const data = await res.json()
+        const data: ApiResponse = await res.json()
         
         if (data.success) {
-          const mapped: Vehicle[] = data.data.vehicles.map((v: any) => ({
+          const mapped: Vehicle[] = data.data.vehicles.map((v: VehicleApiResponse) => ({
             id: Number(v.id),
             no_pol: v.no_pol || 'N/A',
             group_name: v.group_name || 'N/A',
@@ -495,31 +513,31 @@ export default function VehiclePage() {
             <div className="space-y-3">
               <div className="flex">
                 <div className="w-1/3 font-medium text-gray-700">ID:</div>
-                <div className="w-2/3">{selectedVehicle.id}</div>
+                <div className="w-2/3">&quot;{selectedVehicle.id}&quot;</div>
               </div>
               <div className="flex">
                 <div className="w-1/3 font-medium text-gray-700">License Plate:</div>
-                <div className="w-2/3">{selectedVehicle.no_pol}</div>
+                <div className="w-2/3">&quot;{selectedVehicle.no_pol}&quot;</div>
               </div>
               <div className="flex">
                 <div className="w-1/3 font-medium text-gray-700">IMEI:</div>
-                <div className="w-2/3">{selectedVehicle.group_name}</div>
+                <div className="w-2/3">&quot;{selectedVehicle.group_name}&quot;</div>
               </div>
               <div className="flex">
                 <div className="w-1/3 font-medium text-gray-700">SIM Number:</div>
-                <div className="w-2/3">{selectedVehicle.sim_number}</div>
+                <div className="w-2/3">&quot;{selectedVehicle.sim_number}&quot;</div>
               </div>
               <div className="flex">
                 <div className="w-1/3 font-medium text-gray-700">Type:</div>
-                <div className="w-2/3">{selectedVehicle.type}</div>
+                <div className="w-2/3">&quot;{selectedVehicle.type}&quot;</div>
               </div>
               <div className="flex">
                 <div className="w-1/3 font-medium text-gray-700">Status:</div>
-                <div className="w-2/3 capitalize">{selectedVehicle.status}</div>
+                <div className="w-2/3 capitalize">&quot;{selectedVehicle.status}&quot;</div>
               </div>
               <div className="flex">
                 <div className="w-1/3 font-medium text-gray-700">Join Date:</div>
-                <div className="w-2/3">{selectedVehicle.joinDate}</div>
+                <div className="w-2/3">&quot;{selectedVehicle.joinDate}&quot;</div>
               </div>
             </div>
             <div className="flex justify-end mt-6">
@@ -539,7 +557,7 @@ export default function VehiclePage() {
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md border-4 border-blue-200 shadow-2xl shadow-blue-200/50">
             <h3 className="text-xl font-semibold mb-4">Confirm Deletion</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to delete vehicle <span className="font-medium">"{selectedVehicle.no_pol}"</span>? This action cannot be undone.</p>
+            <p className="text-gray-600 mb-6">Are you sure you want to delete vehicle <span className="font-medium">&quot;{selectedVehicle.no_pol}&quot;</span>? This action cannot be undone.</p>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setIsDeleteModalOpen(false)}
