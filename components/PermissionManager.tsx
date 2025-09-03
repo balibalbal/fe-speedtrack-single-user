@@ -163,7 +163,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
   const fetchAllPermissions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:3000/api/permissions', {
+      const response = await fetch('https://demo.speedtrack.id/api/api/permissions', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -181,7 +181,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
   const fetchUserPermissions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:3000/permissions/user/${userId}`, {
+      const response = await fetch(`https://demo.speedtrack.id/api/permissions/user/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -218,7 +218,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
       const permissionName = permissions.find(p => p.id === permissionId)?.name || 'Permission'
       
       if (currentlyHasPermission) {
-        const response = await fetch('http://localhost:3000/permissions/user', {
+        const response = await fetch('https://demo.speedtrack.id/api/permissions/user', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -236,7 +236,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
           toast.error(`Gagal menghapus permission: ${data.message}`)
         }
       } else {
-        const response = await fetch('http://localhost:3000/permissions/user', {
+        const response = await fetch('https://demo.speedtrack.id/api/permissions/user', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -284,7 +284,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
       const token = localStorage.getItem('token')
       
       try {
-        const response = await fetch('http://localhost:3000/permissions/user/bulk', {
+        const response = await fetch('https://demo.speedtrack.id/api/permissions/user/bulk', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -314,7 +314,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
         const toRemove = userPermissions.filter(id => !selectedPermissions.includes(id))
         for (const permissionId of toRemove) {
           try {
-            await fetch('http://localhost:3000/permissions/user', {
+            await fetch('https://demo.speedtrack.id/api/permissions/user', {
               method: 'DELETE',
               headers: {
                 'Content-Type': 'application/json',
@@ -332,7 +332,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
         const toAdd = selectedPermissions.filter(id => !userPermissions.includes(id))
         for (const permissionId of toAdd) {
           try {
-            await fetch('http://localhost:3000/permissions/user', {
+            await fetch('https://demo.speedtrack.id/api/permissions/user', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

@@ -72,7 +72,7 @@ export default function GPSChartsPage() {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:3000/histories/tracking?vehicleId=${selectedVehicle}&start=${startDate}&end=${endDate}`,
+        `https://demo.speedtrack.id/api/histories/tracking?vehicleId=${selectedVehicle}&start=${startDate}&end=${endDate}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

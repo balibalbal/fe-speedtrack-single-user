@@ -131,7 +131,7 @@ export default function TrackingPage() {
       setLoading(true)
       
       const res = await fetch(
-        `http://localhost:3000/traccars`,
+        `https://demo.speedtrack.id/api/traccars`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -199,7 +199,7 @@ export default function TrackingPage() {
     try {
       setDeviceLoading(true);
       const res = await fetch(
-        `http://localhost:3000/devices/${deviceId}`,
+        `https://demo.speedtrack.id/api/devices/${deviceId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

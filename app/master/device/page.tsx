@@ -72,7 +72,7 @@ export default function DevicePage() {
           ...(searchTerm && { search: searchTerm })
         })
 
-        const res = await fetch(`http://localhost:3000/devices?${queryParams}`, {
+        const res = await fetch(`https://demo.speedtrack.id/api/devices?${queryParams}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

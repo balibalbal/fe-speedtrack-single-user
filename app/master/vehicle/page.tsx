@@ -72,7 +72,7 @@ export default function VehiclePage() {
           ...(searchTerm && { search: searchTerm })
         })
 
-        const res = await fetch(`http://localhost:3000/vehicles?${queryParams}`, {
+        const res = await fetch(`https://demo.speedtrack.id/api/vehicles?${queryParams}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -39,7 +39,7 @@ export default function UsersPage() {
     const fetchUsers = async () => {
       if (!token) return
       try {
-        const res = await fetch('http://localhost:3000/users', {
+        const res = await fetch('https://demo.speedtrack.id/api/users', {
           headers: {
             Authorization: `Bearer ${token}`,
           },

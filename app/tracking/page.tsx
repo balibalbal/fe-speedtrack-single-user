@@ -78,7 +78,7 @@ export default function TrackingPage() {
       return; // Hentikan eksekusi jika token tidak ada
     }
 
-    const res = await fetch("http://localhost:3000/vehicles/select", {
+    const res = await fetch("https://demo.speedtrack.id/api/vehicles/select", {
       headers: {
         //"Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -108,7 +108,7 @@ export default function TrackingPage() {
       if (filterParams.end_date) params.append('end', filterParams.end_date)
       
       const res = await fetch(
-        `http://localhost:3000/histories/tracking?${params.toString()}`,
+        `https://demo.speedtrack.id/api/histories/tracking?${params.toString()}`,
         {
           headers: {
             // "Content-Type": "application/json",

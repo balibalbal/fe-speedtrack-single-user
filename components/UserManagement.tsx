@@ -33,7 +33,7 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:3000/users', {
+      const response = await fetch('https://demo.speedtrack.id/api/users', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -60,7 +60,7 @@ export default function UserManagement() {
       const token = localStorage.getItem('token')
       const newStatus = currentStatus === '1' ? '0' : '1'
       
-      const response = await fetch(`http://localhost:3000/users/${userId}/status`, {
+      const response = await fetch(`https://demo.speedtrack.id/api/users/${userId}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

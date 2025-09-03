@@ -27,7 +27,7 @@ export default function PermissionManagement() {
   const fetchPermissions = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:3000/permissions', {
+      const response = await fetch('https://demo.speedtrack.id/api/permissions', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -46,7 +46,7 @@ export default function PermissionManagement() {
   const createPermission = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:3000/permissions', {
+      const response = await fetch('https://demo.speedtrack.id/api/permissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

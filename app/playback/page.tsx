@@ -348,7 +348,7 @@ const exportParkingToExcel = () => {
       if (filterParams.end_date) params.append('end', filterParams.end_date)
       
       const res = await fetch(
-        `http://localhost:3000/histories/tracking?${params.toString()}`,
+        `https://demo.speedtrack.id/api/histories/tracking?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

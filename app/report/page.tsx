@@ -124,7 +124,7 @@ export default function GPSReportPage() {
     setVehiclesLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:3000/vehicles/select`,
+        `https://demo.speedtrack.id/api/vehicles/select`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -170,7 +170,7 @@ export default function GPSReportPage() {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:3000/histories/tracking?vehicleId=${selectedVehicle}&start=${startDate}&end=${endDate}`,
+        `https://demo.speedtrack.id/api/histories/tracking?vehicleId=${selectedVehicle}&start=${startDate}&end=${endDate}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -206,7 +206,7 @@ export default function GPSReportPage() {
     setLastPositionLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:3000/traccars`,
+        `https://demo.speedtrack.id/api/traccars`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
