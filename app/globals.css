@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
 
 :root {
   --background: #ffffff;
@@ -19,8 +21,45 @@
   }
 }
 
+@keyframes scale-fade {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-fade {
+  animation: scale-fade 0.15s ease-out forwards;
+}
+
+
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+  .custom-div-icon {
+    background: transparent !important;
+    border: none !important;
+  }
+  .custom-div-icon > div {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .custom-div-icon img {
+    width: 40px !important;
+    height: 40px !important;
+    transition: transform 0.3s ease;
+  }
+  .leaflet-marker-icon {
+    border: none !important;
+    background: none !important;
+  }
+
+  
