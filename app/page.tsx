@@ -353,10 +353,10 @@ export default function TrackingPage() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Cari berdasarkan no. polisi..."
+                placeholder="Type plate number here..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-2 pl-9 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full text-xs p-2 pl-9 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <div className="absolute left-3 top-2.5 text-gray-400">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -376,30 +376,7 @@ export default function TrackingPage() {
             </div>
           </div>
 
-          {/* Auto Refresh Control */}
-          <div className="p-3 border-b bg-yellow-50">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Auto Refresh</span>
-              <button
-                onClick={() => setIsPolling(!isPolling)}
-                className={`px-2 py-1 rounded text-xs ${
-                  isPolling ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
-                }`}
-              >
-                {isPolling ? 'Stop' : 'Start'}
-              </button>
-            </div>
-            <div className="flex justify-between items-center text-xs text-gray-500">
-              <span>Terakhir update: {lastUpdate}</span>
-              <button 
-                onClick={handleManualRefresh}
-                className="text-blue-500 hover:text-blue-700"
-              >
-                Refresh
-              </button>
-            </div>
-          </div>
-          
+                    
           {/* Tab Navigation - Modern Design */}
           <div className="flex border-b px-2 pt-2">
             <button
@@ -619,6 +596,30 @@ export default function TrackingPage() {
       >
         <div className={`${isRightOpen ? "block" : "hidden"} h-full flex flex-col`}>
           <div className="p-4 flex-1 overflow-y-auto">
+            {/* Auto Refresh Control */}
+            <div className="p-3 border-b bg-yellow-50 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Auto Refresh</span>
+                <button
+                  onClick={() => setIsPolling(!isPolling)}
+                  className={`px-2 py-1 rounded text-xs ${
+                    isPolling ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+                  }`}
+                >
+                  {isPolling ? 'Stop' : 'Start'}
+                </button>
+              </div>
+              <div className="flex justify-between items-center text-xs text-gray-500">
+                <span>Last update: {lastUpdate}</span>
+                <button 
+                  onClick={handleManualRefresh}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+            
             {/* Download Button */}
             <div className="mb-4 flex justify-end">
               <button
@@ -631,63 +632,6 @@ export default function TrackingPage() {
                 </svg>
                 Download
               </button>
-            </div>
-            
-            {/* Information */}
-            <div className="space-y-5">
-              <h2 className="text-lg font-bold text-gray-800 mb-2 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Informasi Monitoring
-              </h2>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 p-3 rounded">
-                  <div className="text-2xl font-bold">{vehiclesWithLocation.length}</div>
-                  <div className="text-sm">Kendaraan Online</div>
-                </div>
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-2xl font-bold">{vehicles.length - vehiclesWithLocation.length}</div>
-                  <div className="text-sm">Kendaraan Offline</div>
-                </div>
-              </div>
-
-              {/* Status Breakdown */}
-              <div>
-                <h3 className="font-medium mb-2">Status Kendaraan Online</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                    <span>Bergerak:</span>
-                    <span className="font-bold ml-1">{statusCounts.bergerak}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                    <span>Mati:</span>
-                    <span className="font-bold ml-1">{statusCounts.mati}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-                    <span>Berhenti:</span>
-                    <span className="font-bold ml-1">{statusCounts.berhenti}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
-                    <span>Diam:</span>
-                    <span className="font-bold ml-1">{statusCounts.diam}</span>
-                  </div>
-                  {statusCounts.unknown > 0 && (
-                    <div className="flex items-center col-span-2">
-                      <div className="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
-                      <span>Tidak diketahui:</span>
-                      <span className="font-bold ml-1">{statusCounts.unknown}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
 
             {/* Divider */}
