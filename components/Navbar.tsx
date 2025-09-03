@@ -73,17 +73,17 @@ export default function Navbar() {
           {/* Logo and Desktop Menu */}
           <div className="flex items-center">
             <Link 
-  href="/" 
-  className="flex-shrink-0 flex items-center gap-2 text-xl text-blue-600"
->
-  <Image
-  src="https://track.mtrack.co.id/backend/img/mtrack-logo-new.png"
-  alt="Logo"
-  width={120}
-  height={80}
-  className="h-20 w-auto object-contain"
-/>
-</Link>
+              href="/" 
+              className="flex-shrink-0 flex items-center gap-2 text-xl text-blue-600"
+            >
+              <Image
+              src="images/logo/speed-track-logo.png"
+              alt="Logo"
+              width={120}
+              height={80}
+              className="h-20 w-auto object-contain"
+            />
+            </Link>
 
             <div className="hidden md:flex md:ml-10 md:space-x-6">
               {/* Master Dropdown */}

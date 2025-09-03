@@ -34,8 +34,8 @@ export default function LoginPage() {
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6">
           <div className="flex justify-center items-center">
             <Image 
-              src="https://track.mtrack.co.id/backend/img/mtrack-logo-new.png" 
-              alt="MTRACK Logo"
+              src="images/logo/speed-track-logo.png" 
+              alt="Logo"
               width={120}
               height={60}
               className="h-15 w-auto object-contain"

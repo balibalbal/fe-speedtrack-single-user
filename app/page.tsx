@@ -73,35 +73,32 @@ export default function TrackingPage() {
   const [deviceData, setDeviceData] = useState<Device | null>(null)
   const [deviceLoading, setDeviceLoading] = useState(false)
   const [map, setMap] = useState<L.Map | null>(null)
-  const [markers, setMarkers] = useState<L.Marker[]>([])
   const [activeTab, setActiveTab] = useState<TabType>('all')
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTabType>('info')
   const [searchTerm, setSearchTerm] = useState('')
+  const [isPolling, setIsPolling] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState<string>('')
   
   const [isLeftOpen, setIsLeftOpen] = useState(true)
   const [isRightOpen, setIsRightOpen] = useState(true)
   
   const mapRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<L.Marker[]>([])
 
   // Get icon based on vehicle status
   const getIconByStatus = useCallback((status: string | null) => {
     switch(status) {
-      case 'bergerak':
-        return '/images/vehicles/on.png';
-      case 'mati':
-        return '/images/vehicles/off.png';
-      case 'berhenti':
-        return '/images/vehicles/engine.png'
-      case 'diam':
-        return '/images/vehicles/ack.png'
-      default:
-        return '/images/vehicles/default.png'
+      case 'bergerak': return '/images/vehicles/on.png';
+      case 'mati': return '/images/vehicles/off.png';
+      case 'berhenti': return '/images/vehicles/engine.png';
+      case 'diam': return '/images/vehicles/ack.png';
+      default: return '/images/vehicles/default.png';
     }
   }, [])
   
   // Initialize map
   useEffect(() => {
-    if (typeof window !== 'undefined' && mapRef.current) {
+    if (typeof window !== 'undefined' && mapRef.current && !map) {
       const mapInstance = L.map(mapRef.current).setView([-6.2, 106.8], 10)
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -112,6 +109,7 @@ export default function TrackingPage() {
       
       return () => {
         mapInstance.remove()
+        setMap(null)
       }
     }
   }, [])
@@ -127,6 +125,8 @@ export default function TrackingPage() {
 
   // Fetch data from API
   const fetchTracking = useCallback(async () => {
+    if (!token) return;
+    
     try {
       setLoading(true)
       
@@ -136,8 +136,12 @@ export default function TrackingPage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          cache: 'no-cache'
         }
       )
+      
+      if (!res.ok) throw new Error('Failed to fetch data')
+      
       const data = await res.json()
       if (data.success) {
         setVehicles(data.data)
@@ -145,9 +149,9 @@ export default function TrackingPage() {
         // Add markers to map
         if (map) {
           // Clear existing markers
-          markers.forEach(marker => map.removeLayer(marker))
+          markersRef.current.forEach(marker => map.removeLayer(marker))
+          markersRef.current = []
           
-          const newMarkers: L.Marker[] = []
           const bounds = L.latLngBounds([]);
           
           data.data.forEach((vehicle: Vehicle) => {
@@ -174,23 +178,33 @@ export default function TrackingPage() {
                 setSelectedVehicle(vehicle)
               })
               
-              newMarkers.push(marker)
+              markersRef.current.push(marker)
             }
           })
-          
-          setMarkers(newMarkers)
           
           if (bounds.getNorthWest() && bounds.getSouthEast()) {
             map.fitBounds(bounds, { padding: [50, 50] });
           }
         }
+        
+        // Update last update time
+        setLastUpdate(new Date().toLocaleTimeString('id-ID'))
       }
     } catch (err) {
       console.error("Error fetching tracking data:", err)
     } finally {
       setLoading(false)
     }
-  }, [token, map, markers, getIconByStatus])
+  }, [token, map, getIconByStatus])
+
+  // Polling data setiap 30 detik
+  useEffect(() => {
+    if (token && isPolling) {
+      fetchTracking(); // Fetch immediately
+      const interval = setInterval(fetchTracking, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [token, isPolling, fetchTracking]);
 
   // Fetch device data when selected vehicle changes
   const fetchDeviceData = useCallback(async (deviceId: string) => {
@@ -218,11 +232,6 @@ export default function TrackingPage() {
     }
   }, [token]);
 
-  // Load data on component mount
-  useEffect(() => {
-    fetchTracking()
-  }, [fetchTracking])
-  
   // When a vehicle is selected, fetch device data if device_id exists
   useEffect(() => {
     if (selectedVehicle && selectedVehicle.device_id) {
@@ -239,14 +248,14 @@ export default function TrackingPage() {
       map.setView([selectedVehicle.latitude, selectedVehicle.longitude], 15)
       
       // Highlight the selected marker
-      markers.forEach(marker => {
+      markersRef.current.forEach(marker => {
         const latLng = marker.getLatLng()
         if (latLng.lat === selectedVehicle.latitude && latLng.lng === selectedVehicle.longitude) {
           marker.openPopup()
         }
       })
     }
-  }, [selectedVehicle, map, markers])
+  }, [selectedVehicle, map])
   
   // Filter vehicles that have valid coordinates
   const vehiclesWithLocation = useMemo(() => 
@@ -324,6 +333,11 @@ export default function TrackingPage() {
     link.click();
     document.body.removeChild(link);
   }
+
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    fetchTracking();
+  }
   
   return (
     <div className="flex h-screen bg-gray-100">
@@ -359,6 +373,30 @@ export default function TrackingPage() {
                   </svg>
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* Auto Refresh Control */}
+          <div className="p-3 border-b bg-yellow-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Auto Refresh</span>
+              <button
+                onClick={() => setIsPolling(!isPolling)}
+                className={`px-2 py-1 rounded text-xs ${
+                  isPolling ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+                }`}
+              >
+                {isPolling ? 'Stop' : 'Start'}
+              </button>
+            </div>
+            <div className="flex justify-between items-center text-xs text-gray-500">
+              <span>Terakhir update: {lastUpdate}</span>
+              <button 
+                onClick={handleManualRefresh}
+                className="text-blue-500 hover:text-blue-700"
+              >
+                Refresh
+              </button>
             </div>
           </div>
           
@@ -447,6 +485,7 @@ export default function TrackingPage() {
               </div>
             </button>
           </div>
+
           
           {/* Vehicle List */}
           <div className="flex-1 overflow-y-auto">
