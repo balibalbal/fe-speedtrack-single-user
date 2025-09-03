@@ -36,8 +36,8 @@ export default function LoginPage() {
             <Image 
               src="/images/logo/speed-track-logo.png" 
               alt="Logo"
-              width={120}
-              height={60}
+              width={50}
+              height={20}
               className="h-15 w-auto object-contain"
             />
           </div>
