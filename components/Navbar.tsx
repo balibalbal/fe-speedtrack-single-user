@@ -77,7 +77,7 @@ export default function Navbar() {
               className="flex-shrink-0 flex items-center gap-2 text-xl text-blue-600"
             >
               <Image
-              src="images/logo/speed-track-logo.png"
+              src="/images/logo/speed-track-logo.png"
               alt="Logo"
               width={120}
               height={80}
