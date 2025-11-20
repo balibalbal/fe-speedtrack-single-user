@@ -17,7 +17,7 @@ interface Vehicle {
   latitude: number | null
   longitude: number | null
   speed: number | null
-  time: string | null
+  gps_time: string | null
   course: number | null
   engine_status: string | null
   ignition_status: string | null
@@ -483,7 +483,7 @@ export default function TrackingPage() {
       : vehiclesWithLocation;
     
     dataToExport.forEach(vehicle => {
-      csvContent += `"${vehicle.no_pol || ''}","${vehicle.status || ''}","${vehicle.address || ''}","${vehicle.time || ''}","${vehicle.speed || ''}"\n`;
+      csvContent += `"${vehicle.no_pol || ''}","${vehicle.status || ''}","${vehicle.address || ''}","${vehicle.gps_time || ''}","${vehicle.speed || ''}"\n`;
     });
     
     // Create download link
@@ -699,7 +699,7 @@ export default function TrackingPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          {vehicle.time ? vehicle.time : 'Waktu tidak tersedia'}
+                          {vehicle.gps_time ? vehicle.gps_time : 'Waktu tidak tersedia'}
                         </div>
                         
                         {vehicle.address && (
@@ -927,7 +927,7 @@ export default function TrackingPage() {
               </div>              
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Date Time:</span>
-                    <span className="font-medium text-xs">{selectedVehicle.time}</span>
+                    <span className="font-medium text-xs">{selectedVehicle.gps_time}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-2">
                     <div className="bg-blue-50 p-2 rounded">
@@ -966,7 +966,7 @@ export default function TrackingPage() {
                     <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                           <p className="text-xs text-gray-500">Address</p>
                           <p className="text-sm">{selectedVehicle.address || 'Lokasi tidak tersedia'}</p>
-                          <p className="text-sm">{formatTime(selectedVehicle.time)}</p>
+                          <p className="text-sm">{formatTime(selectedVehicle.gps_time)}</p>
                     </div>
                     
                     <div>
