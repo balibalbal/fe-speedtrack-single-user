@@ -27,6 +27,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
   const [mode, setMode] = useState<'individual' | 'bulk'>('individual')
   const [notifications, setNotifications] = useState<Notification[]>([])
   const { hasPermission } = useAuth()
+  const API_URL = process.env.NEXT_PUBLIC_API_URL
 
   // Fungsi untuk menambah notifikasi
   const addNotification = (notification: Omit<Notification, 'id'>) => {
@@ -163,7 +164,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
   const fetchAllPermissions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('https://demo.speedtrack.id/api/api/permissions', {
+      const response = await fetch(`${API_URL}/api/permissions`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -181,7 +182,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
   const fetchUserPermissions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`https://demo.speedtrack.id/api/permissions/user/${userId}`, {
+      const response = await fetch(`${API_URL}/api/permissions/user/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -200,7 +201,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
   }, [userId])
 
   useEffect(() => {
-    if (hasPermission('manage_permissions')) {
+    if (hasPermission('user')) {
       fetchAllPermissions()
       fetchUserPermissions()
     }
@@ -218,7 +219,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
       const permissionName = permissions.find(p => p.id === permissionId)?.name || 'Permission'
       
       if (currentlyHasPermission) {
-        const response = await fetch('https://demo.speedtrack.id/api/permissions/user', {
+        const response = await fetch(`${API_URL}/api/permissions/user`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -236,7 +237,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
           toast.error(`Gagal menghapus permission: ${data.message}`)
         }
       } else {
-        const response = await fetch('https://demo.speedtrack.id/api/permissions/user', {
+        const response = await fetch(`${API_URL}/api/permissions/user`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -284,7 +285,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
       const token = localStorage.getItem('token')
       
       try {
-        const response = await fetch('https://demo.speedtrack.id/api/permissions/user/bulk', {
+        const response = await fetch(`${API_URL}/api/permissions/user/bulk`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -314,7 +315,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
         const toRemove = userPermissions.filter(id => !selectedPermissions.includes(id))
         for (const permissionId of toRemove) {
           try {
-            await fetch('https://demo.speedtrack.id/api/permissions/user', {
+            await fetch(`${API_URL}/api/permissions/user`, {
               method: 'DELETE',
               headers: {
                 'Content-Type': 'application/json',
@@ -332,7 +333,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
         const toAdd = selectedPermissions.filter(id => !userPermissions.includes(id))
         for (const permissionId of toAdd) {
           try {
-            await fetch('https://demo.speedtrack.id/api/permissions/user', {
+            await fetch(`${API_URL}/api/permissions/user`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -363,7 +364,7 @@ export default function PermissionManager({ userId }: { userId: string }) {
     }
   }
 
-  if (!hasPermission('manage_permissions')) {
+  if (!hasPermission('user')) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div className="flex">

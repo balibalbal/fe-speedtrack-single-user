@@ -4,6 +4,7 @@
 import { useAuth } from '@/context/AuthContext'
 import PermissionGuard from '@/components/PermissionGuard'
 
+
 export default function DashboardPage() {
   const { user, logout } = useAuth()
 

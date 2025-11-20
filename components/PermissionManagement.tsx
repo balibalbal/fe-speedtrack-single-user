@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 interface Permission {
   id: string
@@ -19,7 +20,7 @@ export default function PermissionManagement() {
   const { hasPermission, isSuperUser } = useAuth()
 
   useEffect(() => {
-    if (isSuperUser() || hasPermission('manage_permissions')) {
+    if (isSuperUser() || hasPermission('user')) {
       fetchPermissions()
     }
   }, [isSuperUser, hasPermission])
@@ -70,11 +71,11 @@ export default function PermissionManagement() {
     }
   }
 
-  if (!isSuperUser() && !hasPermission('manage_permissions')) {
+  if (!isSuperUser() && !hasPermission('user')) {
     return <div>Anda tidak memiliki izin untuk mengelola permissions.</div>
   }
 
-  if (loading) return <div>Loading...</div>
+  if (loading) return <LoadingSpinner />
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">

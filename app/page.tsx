@@ -6,6 +6,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import Link from 'next/link';
 import Image from 'next/image'
+import { io, Socket } from "socket.io-client";
 
 interface Vehicle {
   id: string
@@ -61,6 +62,38 @@ interface Device {
   created_at: string
 }
 
+// Interface untuk data WebSocket
+interface WebSocketData {
+  cellId: number
+  course: number
+  device_id: string
+  eastLongitude: boolean
+  errorCheck: number
+  fixTime: string
+  fixTimestamp: number
+  geofence: number
+  gpsPositioned: boolean
+  group_id: number
+  ignition: number
+  imei: string
+  lac: number
+  lat: number
+  lon: number
+  mcc: number
+  mnc: number
+  no_pol: string
+  northLatitude: boolean
+  notifikasi: string
+  protocolNumber: number
+  realTimeGps: boolean
+  satCnt: number
+  satCntActive: number
+  serialNr: number
+  speed: number
+  speedUnit: string
+  vehicle_id: number
+}
+
 // Tab types
 type TabType = 'all' | 'bergerak' | 'mati' | 'diam' | 'berhenti'
 type DetailTabType = 'info' | 'device'
@@ -76,14 +109,19 @@ export default function TrackingPage() {
   const [activeTab, setActiveTab] = useState<TabType>('all')
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTabType>('info')
   const [searchTerm, setSearchTerm] = useState('')
-  const [isPolling, setIsPolling] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<string>('')
+  const [isConnected, setIsConnected] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState('connecting')
   
   const [isLeftOpen, setIsLeftOpen] = useState(true)
   const [isRightOpen, setIsRightOpen] = useState(true)
   
   const mapRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([])
+  const socketRef = useRef<Socket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const reconnectAttemptsRef = useRef(0)
+  const hasInitialDataLoadedRef = useRef(false)
 
   // Get icon based on vehicle status
   const getIconByStatus = useCallback((status: string | null) => {
@@ -123,7 +161,97 @@ export default function TrackingPage() {
     }
   }, [isLeftOpen, isRightOpen, map]);
 
-  // Fetch data from API
+  // Update map markers function
+  const updateMapMarkers = useCallback((vehiclesData: Vehicle[]) => {
+    if (!map) return;
+    
+    // Clear existing markers
+    markersRef.current.forEach(marker => map.removeLayer(marker))
+    markersRef.current = []
+    
+    const bounds = L.latLngBounds([]);
+    
+    vehiclesData.forEach((vehicle: Vehicle) => {
+      if (vehicle.latitude && vehicle.longitude) {
+        const latLng = L.latLng(vehicle.latitude, vehicle.longitude);
+        bounds.extend(latLng);
+        
+        const customIcon = L.divIcon({
+          html: `
+            <div style="transform: rotate(${vehicle.course || 0}deg); transform-origin: center;">
+              <img src="${getIconByStatus(vehicle.status)}" width="25" height="41"/>
+            </div>
+          `,
+          className: 'custom-div-icon',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+        })
+        
+        const marker = L.marker(latLng, { icon: customIcon })
+          .addTo(map)
+          .bindPopup(vehicle.no_pol || 'Unknown Vehicle')
+        
+        marker.on('click', () => {
+          setSelectedVehicle(vehicle)
+        })
+        
+        markersRef.current.push(marker)
+      }
+    })
+    
+    if (bounds.getNorthWest() && bounds.getSouthEast()) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [map, getIconByStatus])
+
+  // Fungsi untuk mengupdate data kendaraan berdasarkan data dari WebSocket
+  const updateVehicleFromWebSocket = useCallback((data: WebSocketData) => {
+    setVehicles(prevVehicles => {
+      return prevVehicles.map(vehicle => {
+        // Cek apakah ini kendaraan yang sama berdasarkan vehicle_id atau device_id
+        if (vehicle.vehicle_id === data.vehicle_id || 
+            (vehicle.device_id !== null && vehicle.device_id.toString() === data.device_id)) {
+          
+          // Update data kendaraan dengan data baru dari WebSocket
+          return {
+            ...vehicle,
+            latitude: data.lat,
+            longitude: data.lon,
+            speed: data.speed,
+            course: data.course,
+            time: data.fixTime,
+            status: data.ignition === 1 ? 'bergerak' : 'mati', // Sesuaikan dengan logika status Anda
+            ignition_status: data.ignition === 1 ? 'ON' : 'OFF',
+            // Tambahkan field lain yang perlu diupdate
+          };
+        }
+        return vehicle;
+      });
+    });
+
+    // Jika kendaraan yang dipilih sedang dilihat, update juga
+    if (selectedVehicle && 
+        (selectedVehicle.vehicle_id === data.vehicle_id || 
+         (selectedVehicle.device_id !== null && selectedVehicle.device_id.toString() === data.device_id))) {
+      setSelectedVehicle(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          latitude: data.lat,
+          longitude: data.lon,
+          speed: data.speed,
+          course: data.course,
+          time: data.fixTime,
+          status: data.ignition === 1 ? 'bergerak' : 'mati',
+          ignition_status: data.ignition === 1 ? 'ON' : 'OFF',
+        };
+      });
+    }
+
+    setLastUpdate(new Date().toLocaleTimeString('id-ID'));
+  }, [selectedVehicle]);
+
+  // Fetch data from API (initial load only)
   const fetchTracking = useCallback(async () => {
     if (!token) return;
     
@@ -145,66 +273,95 @@ export default function TrackingPage() {
       const data = await res.json()
       if (data.success) {
         setVehicles(data.data)
-        
-        // Add markers to map
-        if (map) {
-          // Clear existing markers
-          markersRef.current.forEach(marker => map.removeLayer(marker))
-          markersRef.current = []
-          
-          const bounds = L.latLngBounds([]);
-          
-          data.data.forEach((vehicle: Vehicle) => {
-            if (vehicle.latitude && vehicle.longitude) {
-              const latLng = L.latLng(vehicle.latitude, vehicle.longitude);
-              bounds.extend(latLng);
-              
-              const customIcon = L.divIcon({
-                html: `
-                  <div style="transform: rotate(${vehicle.course || 0}deg); transform-origin: center;">
-                    <img src="${getIconByStatus(vehicle.status)}" width="25" height="41"/>
-                  </div>
-                `,
-                className: 'custom-div-icon',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-              })
-              
-              const marker = L.marker(latLng, { icon: customIcon })
-                .addTo(map)
-                .bindPopup(vehicle.no_pol || 'Unknown Vehicle')
-              
-              marker.on('click', () => {
-                setSelectedVehicle(vehicle)
-              })
-              
-              markersRef.current.push(marker)
-            }
-          })
-          
-          if (bounds.getNorthWest() && bounds.getSouthEast()) {
-            map.fitBounds(bounds, { padding: [50, 50] });
-          }
-        }
+        updateMapMarkers(data.data)
         
         // Update last update time
         setLastUpdate(new Date().toLocaleTimeString('id-ID'))
+        hasInitialDataLoadedRef.current = true;
       }
     } catch (err) {
       console.error("Error fetching tracking data:", err)
     } finally {
       setLoading(false)
     }
-  }, [token, map, getIconByStatus])
+  }, [token, updateMapMarkers])
 
-  // Polling data setiap 30 detik
+  // Initialize WebSocket connection
   useEffect(() => {
-    if (token && isPolling) {
-      fetchTracking(); // Fetch immediately
-      const interval = setInterval(fetchTracking, 30000);
-      return () => clearInterval(interval);
+    if (!token || !hasInitialDataLoadedRef.current) return;
+
+    // Close socket lama kalau ada
+    if (socketRef.current) {
+      socketRef.current.disconnect();
     }
-  }, [token, isPolling, fetchTracking]);
+
+    // Koneksi ke server socket.io
+    const socket = io("https://socket.mtrack.co.id", {
+      transports: ["websocket"],
+      query: { token },
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("✅ Socket.IO connected:", socket.id);
+      setIsConnected(true);
+      setConnectionStatus("connected");
+      reconnectAttemptsRef.current = 0;
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("❌ Disconnected:", reason);
+      setIsConnected(false);
+      setConnectionStatus("disconnected");
+      
+      // Coba reconnect setelah delay
+      if (reconnectAttemptsRef.current < 5) {
+        reconnectAttemptsRef.current += 1;
+        const delay = Math.min(1000 * reconnectAttemptsRef.current, 10000);
+        
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
+          setConnectionStatus('reconnecting');
+          socket.connect();
+        }, delay);
+      }
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("⚠️ Connection error:", err.message);
+      setConnectionStatus("error");
+    });
+
+    // Listen untuk data location dari WebSocket
+    socket.on("message", (data: WebSocketData) => {
+      console.log("📩 Data location diterima:", data);
+      updateVehicleFromWebSocket(data);
+    });
+
+    // Custom event untuk vehicle update
+    socket.on("vehicle_update", (data: WebSocketData) => {
+      console.log("🚚 Vehicle update:", data);
+      updateVehicleFromWebSocket(data);
+    });
+
+    return () => {
+      socket.disconnect();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [token, updateVehicleFromWebSocket]);
+
+  // Fetch initial data
+  useEffect(() => {
+    if (token && !hasInitialDataLoadedRef.current) {
+      fetchTracking();
+    }
+  }, [token, fetchTracking]);
 
   // Fetch device data when selected vehicle changes
   const fetchDeviceData = useCallback(async (deviceId: string) => {
@@ -256,6 +413,13 @@ export default function TrackingPage() {
       })
     }
   }, [selectedVehicle, map])
+  
+  // Update map markers when vehicles data changes
+  useEffect(() => {
+    if (vehicles.length > 0 && map) {
+      updateMapMarkers(vehicles);
+    }
+  }, [vehicles, updateMapMarkers, map]);
   
   // Filter vehicles that have valid coordinates
   const vehiclesWithLocation = useMemo(() => 
@@ -337,6 +501,17 @@ export default function TrackingPage() {
   // Manual refresh function
   const handleManualRefresh = () => {
     fetchTracking();
+  }
+
+  // Reconnect WebSocket manually
+  const handleReconnectWebSocket = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    reconnectAttemptsRef.current = 0;
+    setConnectionStatus('connecting');
+    
+    // The useEffect will automatically attempt to reconnect
   }
   
   return (
@@ -524,7 +699,7 @@ export default function TrackingPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          {vehicle.time ? formatTime(vehicle.time) : 'Waktu tidak tersedia'}
+                          {vehicle.time ? vehicle.time : 'Waktu tidak tersedia'}
                         </div>
                         
                         {vehicle.address && (
@@ -596,27 +771,50 @@ export default function TrackingPage() {
       >
         <div className={`${isRightOpen ? "block" : "hidden"} h-full flex flex-col`}>
           <div className="p-4 flex-1 overflow-y-auto">
-            {/* Auto Refresh Control */}
-            <div className="p-3 border-b bg-yellow-50 mb-4">
+            {/* WebSocket Connection Status */}
+            <div className="p-3 border-b mb-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Auto Refresh</span>
-                <button
-                  onClick={() => setIsPolling(!isPolling)}
-                  className={`px-2 py-1 rounded text-xs ${
-                    isPolling ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
-                  }`}
-                >
-                  {isPolling ? 'Stop' : 'Start'}
-                </button>
+                <span className="text-sm font-medium">WebSocket Connection</span>
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${
+                    connectionStatus === 'connected' ? 'bg-green-500' :
+                    connectionStatus === 'connecting' ? 'bg-yellow-500' :
+                    connectionStatus === 'reconnecting' ? 'bg-yellow-500 animate-pulse' :
+                    'bg-red-500'
+                  }`}></div>
+                  <span className={`text-xs ${
+                    connectionStatus === 'connected' ? 'text-green-700' :
+                    connectionStatus === 'connecting' ? 'text-yellow-700' :
+                    connectionStatus === 'reconnecting' ? 'text-yellow-700' :
+                    'text-red-700'
+                  }`}>
+                    {connectionStatus === 'connected' ? 'Connected' :
+                     connectionStatus === 'connecting' ? 'Connecting' :
+                     connectionStatus === 'reconnecting' ? 'Reconnecting' :
+                     'Disconnected'}
+                  </span>
+                </div>
               </div>
               <div className="flex justify-between items-center text-xs text-gray-500">
                 <span>Last update: {lastUpdate}</span>
-                <button 
-                  onClick={handleManualRefresh}
-                  className="text-blue-500 hover:text-blue-700"
-                >
-                  Refresh
-                </button>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={handleManualRefresh}
+                    className="text-blue-500 hover:text-blue-700"
+                    title="Refresh Data"
+                  >
+                    Refresh
+                  </button>
+                  {!isConnected && (
+                    <button 
+                      onClick={handleReconnectWebSocket}
+                      className="text-green-500 hover:text-green-700"
+                      title="Reconnect WebSocket"
+                    >
+                      Reconnect
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             

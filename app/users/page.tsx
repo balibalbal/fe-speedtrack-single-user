@@ -33,13 +33,14 @@ export default function UsersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const API_URL = process.env.NEXT_PUBLIC_API_URL
 
   // Fetch user dari API
   useEffect(() => {
     const fetchUsers = async () => {
       if (!token) return
       try {
-        const res = await fetch('https://demo.speedtrack.id/api/users', {
+        const res = await fetch(`${API_URL}/api/users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -5,16 +5,17 @@ import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import UserManagement from '@/components/UserManagement'
 import PermissionManagement from '@/components/PermissionManagement'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 export default function AdminPage() {
   const { user, hasPermission } = useAuth()
   const [activeTab, setActiveTab] = useState('users')
 
   if (!user) {
-    return <div>Loading...</div>
+    return <LoadingSpinner />
   }
 
-  if (!user.is_superuser && !hasPermission('access_admin')) {
+  if (!user.is_superuser && !hasPermission('user')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -48,7 +49,7 @@ export default function AdminPage() {
               >
                 Manajemen User
               </button>
-              {(user.is_superuser || hasPermission('manage_permissions')) && (
+              {(user.is_superuser || hasPermission('user')) && (
                 <button
                   onClick={() => setActiveTab('permissions')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm ${

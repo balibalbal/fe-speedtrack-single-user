@@ -51,8 +51,9 @@ export default function DevicePage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
-  
-  // ✅ State untuk server-side pagination
+  const API_URL = process.env.NEXT_PUBLIC_API_URL
+
+  // State untuk server-side pagination
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [totalPages, setTotalPages] = useState(1)
@@ -72,7 +73,7 @@ export default function DevicePage() {
           ...(searchTerm && { search: searchTerm })
         })
 
-        const res = await fetch(`https://demo.speedtrack.id/api/devices?${queryParams}`, {
+        const res = await fetch(`${API_URL}/api/devices?${queryParams}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -102,7 +103,7 @@ export default function DevicePage() {
       }
     }
     
-    // ✅ Debounce search untuk menghindari terlalu banyak request
+    // Debounce search untuk menghindari terlalu banyak request
     const timeoutId = setTimeout(() => {
       fetchDevice()
     }, 300) // Delay 300ms setelah user berhenti mengetik
@@ -110,20 +111,20 @@ export default function DevicePage() {
     return () => clearTimeout(timeoutId)
   }, [token, currentPage, itemsPerPage, searchTerm]) // ✅ Tambahkan dependencies
 
-  // ✅ Handler untuk ganti page
+  // Handler untuk ganti page
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page)
     }
   }
 
-  // ✅ Handler untuk ganti items per page
+  // Handler untuk ganti items per page
   const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setItemsPerPage(Number(e.target.value))
     setCurrentPage(1) // Reset ke page 1
   }
 
-  // ✅ Handler untuk search
+  // Handler untuk search
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
     setCurrentPage(1) // Reset ke page 1 ketika search
@@ -153,7 +154,7 @@ export default function DevicePage() {
     }
   }
 
-  // ✅ Generate page numbers untuk pagination
+  // Generate page numbers untuk pagination
   const getPageNumbers = () => {
     const pages = []
     const maxVisiblePages = 5
@@ -224,7 +225,7 @@ export default function DevicePage() {
           </button>
         </div>
 
-        {/* ✅ Items per page selector */}
+        {/* Items per page selector */}
         <div className="flex justify-between items-center mb-4">
           <div className="text-sm text-gray-600">
             Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} results
@@ -260,7 +261,7 @@ export default function DevicePage() {
             </thead>
             <tbody>
               {loading ? (
-                // ✅ Loading state
+                // Loading state
                 <tr>
                   <td colSpan={7} className="p-8 text-center">
                     <div className="flex justify-center">
@@ -269,14 +270,14 @@ export default function DevicePage() {
                   </td>
                 </tr>
               ) : devices.length === 0 ? (
-                // ✅ Empty state
+                // Empty state
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-gray-500">
                     No devices found
                   </td>
                 </tr>
               ) : (
-                // ✅ Devices data
+                // Devices data
                 devices.map((device) => (
                   <tr key={device.id} className="border-b border-gray-200 hover:bg-gray-50">
                     <td className="p-3">{device.id}</td>
@@ -323,7 +324,7 @@ export default function DevicePage() {
           </table>
         </div>
 
-        {/* ✅ Pagination Controls */}
+        {/* Pagination Controls */}
         <div className="flex items-center justify-between mt-6">
           <div className="text-sm text-gray-600">
             Page {currentPage} of {totalPages}

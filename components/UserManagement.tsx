@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import PermissionManager from '@/components/PermissionManager'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 interface User {
   id: string
@@ -23,9 +24,10 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
+  const API_URL = process.env.NEXT_PUBLIC_API_URL
 
   useEffect(() => {
-    if (user && hasPermission('manage_users')) {
+    if (user && hasPermission('user')) {
       fetchUsers()
     }
   }, [user, hasPermission])
@@ -33,7 +35,7 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('https://demo.speedtrack.id/api/users', {
+      const response = await fetch(`${API_URL}/api/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -60,7 +62,7 @@ export default function UserManagement() {
       const token = localStorage.getItem('token')
       const newStatus = currentStatus === '1' ? '0' : '1'
       
-      const response = await fetch(`https://demo.speedtrack.id/api/users/${userId}/status`, {
+      const response = await fetch(`${API_URL}/api/users/${userId}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -80,7 +82,7 @@ export default function UserManagement() {
     }
   }
 
-  if (!hasPermission('manage_users')) {
+  if (!hasPermission('user')) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div className="flex">
@@ -103,11 +105,7 @@ export default function UserManagement() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   return (

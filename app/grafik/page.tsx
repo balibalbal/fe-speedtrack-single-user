@@ -6,6 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area 
 } from 'recharts';
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 // Define types for the API response
 interface TrackingPoint {
@@ -18,7 +19,7 @@ interface TrackingPoint {
   course: string;
   address: string;
   status: string;
-  time: string;
+  gps_time: string;
   geojson: string;
 }
 
@@ -165,7 +166,7 @@ export default function GPSChartsPage() {
     const dailyData: { [key: string]: { date: string, moving: number, stopped: number, off: number } } = {};
     
     trackingData.points.forEach(point => {
-      const date = new Date(point.time).toLocaleDateString('id-ID', {
+      const date = new Date(point.gps_time).toLocaleDateString('id-ID', {
         day: '2-digit',
         month: '2-digit'
       });
@@ -195,7 +196,7 @@ export default function GPSChartsPage() {
     }));
 
     trackingData.points.forEach(point => {
-      const hour = new Date(point.time).getHours();
+      const hour = new Date(point.gps_time).getHours();
       hourlyData[hour].count++;
     });
 
@@ -223,7 +224,7 @@ export default function GPSChartsPage() {
     
     const movingPoints = trackingData.points
       .filter(point => point.speed > 0)
-      .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+      .sort((a, b) => new Date(a.gps_time).getTime() - new Date(b.gps_time).getTime());
 
     // Sample every 10th point for trend
     return movingPoints
@@ -231,7 +232,7 @@ export default function GPSChartsPage() {
       .map((point, index) => ({
         index,
         speed: point.speed,
-        time: new Date(point.time).toLocaleTimeString('id-ID', { 
+        time: new Date(point.gps_time).toLocaleTimeString('id-ID', { 
           hour: '2-digit', 
           minute: '2-digit' 
         })
@@ -249,7 +250,13 @@ export default function GPSChartsPage() {
           height: '400px',
           color: '#7f8c8d'
         }}>
-          {loading ? 'Memuat data...' : 'Tidak ada data untuk ditampilkan'}
+          {loading ? (
+            <>
+              <LoadingSpinner />
+            </>
+          ) : (
+            'Refresh Data'
+          )}
         </div>
       );
     }

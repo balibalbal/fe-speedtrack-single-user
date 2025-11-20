@@ -70,7 +70,7 @@ interface Point {
   course: number
   speed: number
   status: string
-  time: string
+  gps_time: string
   address: string
   geojson: string
 }
@@ -401,7 +401,7 @@ export default function LivePage() {
                 
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-500">Last Update</p>
-                  <p className="text-sm">{formatDateTime(lastPoint.time)}</p>
+                  <p className="text-sm">{formatDateTime(lastPoint.gps_time)}</p>
                 </div>
                 
                 <div className="mt-auto pt-4">
@@ -444,8 +444,8 @@ export default function LivePage() {
                     <div key={point.id} className="p-3 border rounded-lg hover:bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-medium">{formatTime(point.time)}</p>
-                          <p className="text-xs text-gray-500">{formatDateTime(point.time)}</p>
+                          <p className="font-medium">{formatTime(point.gps_time)}</p>
+                          <p className="text-xs text-gray-500">{formatDateTime(point.gps_time)}</p>
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(point.status)}`}>
                           {point.status}

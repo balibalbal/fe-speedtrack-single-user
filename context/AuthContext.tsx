@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const API_URL = process.env.NEXT_PUBLIC_API_URL
 
   // Fungsi untuk mengecek permission
   const hasPermission = (permission: string): boolean => {
@@ -73,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 🔹 Restore token & user saat reload
   useEffect(() => {
   const storedToken = localStorage.getItem('token');
-  console.log('Stored token:', storedToken);
+  // console.log('Stored token:', storedToken);
   
   if (!storedToken) {
     setLoading(false);
@@ -85,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = async () => {
     try {
       console.log('Fetching user data with token');
-      const res = await fetch('https://demo.speedtrack.id/api/auth/me', {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
         headers: { 
           'Authorization': `Bearer ${storedToken}`,
           'Content-Type': 'application/json'
@@ -138,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   try {
     console.log('Attempting login with:', { email });
     
-    const res = await fetch('https://demo.speedtrack.id/api/auth/login', {
+    const res = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -160,10 +161,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data = await res.json();
-    console.log('Login response data:', data);
+    // console.log('Login response data:', data);
 
     if (data.success && data.data && data.data.user && data.data.token) {
-      console.log('Login successful, user:', data.data.user);
+      // console.log('Login successful, user:', data.data.user);
       setUser(data.data.user);
       setToken(data.data.token);
       localStorage.setItem('token', data.data.token);
@@ -187,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     // Panggil API logout jika diperlukan
-    fetch('https://demo.speedtrack.id:4000/api/auth/logout', {
+    fetch(`${API_URL}/api/auth/logout`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
